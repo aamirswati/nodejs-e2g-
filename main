@@ -1,0 +1,140 @@
+Prepare Environmet​
+Create a github account​
+Create a new empty repo​
+Then log into gitpod using github account​
+Open new workspace in gitpod,​
+Select your new repo and selcect class as large​
+​
+Make a device tree using twrpdtgen​
+git clone https://github.com/twrpdtgen/twrpdtgen​
+cd twrpdtgen​
+sudo apt install cpio​
+pip3 install twrpdtgen​
+drag and drop the stock recovery.img to twrpdtgen folder​
+python3 -m twrpdtgen <path to image>​
+you will get twrp device tree at the out/manufature/code_name (eg: samsung/m01q)​
+then copy manufature folder into root directory (workspace/name_of_your_github_repo)​
+​
+Install repo and packages​
+sudo apt update​
+sudo apt install rsync​
+​
+​
+repo init --depth=1 --no-repo-verify -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 -g default,-mips,-darwin,-notdefault​
+repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j8​
+Place device tree​
+​
+move manufature folder (created device tree) to device (EG: workspace/name_of_your_github_repo/device/samsung)​
+
+Modify Device Tree​
+
+open device.mk and add these​
+​
+Add support to fastbootd (skip the if your device dosnt have super.img)​
+Change the value according to shipped android os​
+
+if android 10 = 29​
+if android 11 = 30​
+if android 12 = 31​
+if android 12.1 = 32​
+if android 13 = 33​
+
+PRODUCT_PACKAGES += \
+    android.hardware.fastboot@1.0-impl-mock \
+    fastbootd
+
+PRODUCT_USE_DYNAMIC_PARTITIONS := true
+
+PRODUCT_SHIPPING_API_LEVEL := 29
+​
+Add device code name​
+​
+TARGET_OTA_ASSERT_DEVICE := m01q
+
+TARGET_COPY_OUT_VENDOR := vendor
+
+
+
+​
+TWRP FLAGS​
+​
+TARGET_RECOVERY_PIXEL_FORMAT := "RGBX_8888"
+# TWRP specific build flags
+TW_THEME := portrait_hdpi
+RECOVERY_SDCARD_ON_DATA := true
+TW_EXCLUDE_DEFAULT_USB_INIT := true
+TW_EXTRA_LANGUAGES := true
+TW_INCLUDE_NTFS_3G := true
+TW_USE_TOOLBOX := true
+TW_INCLUDE_RESETPROP := true
+TW_INPUT_BLACKLIST := "hbtp_vm"
+TW_BRIGHTNESS_PATH := "/sys/class/backlight/panel0-backlight/brightness"
+TW_DEFAULT_BRIGHTNESS := 1200
+TARGET_USES_MKE2FS := true
+TW_NO_LEGACY_PROPS := true
+TW_USE_NEW_MINADBD := true
+TW_NO_BIND_SYSTEM := true
+TW_NO_SCREEN_BLANK := true
+TW_EXCLUDE_APEX := true
+TW_FRAMERATE := 60
+​
+TWRP Name​
+​
+TW_DEVICE_VERSION := smiley​
+​
+Enable notch​
+
+TW_Y_OFFSET := 70
+TW_H_OFFSET := -70
+Reboot to odin for samsung​
+​
+TW_HAS_DOWNLOAD_MODE := true​
+​
+Enable Logcat​
+​
+TWRP_INCLUDE_LOGCAT := true[/HEADING]
+[HEADING=2]TARGET_USES_LOGD := true​
+​
+Add fingerprint​
+​
+#Properties
+TW_OVERRIDE_SYSTEM_PROPS := \
+    "ro.build.fingerprint=ro.system.build.fingerprint;ro.build.version.incremental"
+
+Modify fstab​
+
+Open recovery.fstab​
+
+add this to end of line to enable partition backup and flash​
+
+;backup=1;flashimg
+
+add those to enable sdcard and otg​
+
+# Removable storage
+/external_sd    vfat        /dev/block/mmcblk1p1    /dev/block/mmcblk1        flags=storage;wipeingui;removable
+/usb-otg    auto        /dev/block/sda1    /dev/block/sda                flags=display="USB-OTG";storage;wipeingui;removable
+
+
+Open BoradConfig,mk and modify values according to your device (skip if you dont have super.img)​
+
+# Dynamic Partition
+
+BOARD_SUPER_PARTITION_SIZE := 3945791488
+BOARD_SUPER_PARTITION_GROUPS := android_dynamic_partitions
+BOARD_ANDROID_DYNAMIC_PARTITIONS_SIZE := 3945791488
+BOARD_ANDROID_DYNAMIC_PARTITIONS_PARTITION_LIST := system vendor product odm
+
+Open Omni_device_code.mk​
+
+$(call inherit-product, vendor/omni/config/common.mk)
+
+rename omni to twrp​
+
+$(call inherit-product, vendor/twrp/config/common.mk)
+
+Build TWRP​
+
+. build/envstup.sh
+lunch (select your device-eng)
+make recoveryimage
